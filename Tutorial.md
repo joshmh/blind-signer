@@ -47,7 +47,7 @@ flowchart LR
     B((Blockchain))
     ST --> HW
     HW -.-> B
-    style PK fill:#222,color:#fff,stroke:#f66,stroke-width:4px
+    style MN fill:#222,color:#fff,stroke:#f66,stroke-width:4px
     style PS fill:#222,color:#fff,stroke:#f66,stroke-width:4px
     style UT fill:#222,color:#fff,stroke-width:0px
     style ST fill:#222,color:#fff,stroke-width:0px
