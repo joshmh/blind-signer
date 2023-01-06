@@ -239,7 +239,7 @@ After USB armory writes PSBT, you can exit SHH session and disconnect Armory (ma
 
 Now you can sign transaction via the Signer armory. On the secure location bring the Signer USB Armory, a powerbank, and μSD cards **P** and **T**. Plug the USB Armory into the powerbank. It will start booting, It is ready when blinks stop (solid white LED). Insert the **S** card. When the seed is copied to the RAM the blue LED will turn on, and you can remove the **S** card. Store it on secure place. Insert the **P** card. Again, when the password is copied into RAM the blue LED will turn on, and you can take out the **P** card (blue LED turns off). Lastly, insert the **T** card. The device will decrypt the seed with the password, derive the necessary private key for the transaction and sign the transaction. Signed transaction will be saved to the **T**. The blue LED will turn solid and the white LED will start blinking, indicating final success. You can now remove **T** form the Armory, and then disconnect Armory from the powerbank. Note that if any run-time error occurs, the armory will stop executing the protocol, and the blue LED will start blinking
 
-### Broadcasting the transaction
+#### Broadcasting the transaction
 
 At desktop, connect Burner app to desktop. Repeat network configuration process if needed. Isert **T** cart into the Armory and SHH into it. Run:
 
