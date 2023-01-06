@@ -74,7 +74,7 @@ Whole project works on few levels:
 
 Burner and Signer apps are made in golang and run on USB Armory. Golang compiler for USB Armory is called [TamaGo](https://github.com/usbarmory/tamago).
 
-If you don't want / can't to use two USB Armories you can use use one, but you will have to load on it *Signer* and *Burner* apps over and over. It is better to have ready two USB Armories loaded with each app.
+If you don't want (can't) to use two USB Armories you can use use one, but you will have to load on it *Signer* and *Burner* apps over and over. It is better to have ready two USB Armories loaded with each app.
 
 ### Installing required dependencies 
 
@@ -153,13 +153,13 @@ Repeat process for the Signer app.
 
 From [Electrum website](https://electrum.org/#download) download Electrum app. Verify downloaded packages following instructions given on website, and install Electrum.
 
-Start Electrum. Choose arbitrary name for your watching wallet. Choose option 'Standard wallet'. Choose option 'Use a master key' Enter your public key into box and click next. If you want, you can choose password for the encryption of your public key (you should this, it is a good security measure). Note that password isn't correlated in any way with your BIP39 password and therefore should be different from it. After you click 'Next', your watching wallet will be ready.
+Start the Electrum. Choose an arbitrary name for your watching wallet. Choose the option 'Standard wallet'. Choose the option 'Use a master key' Enter your public key into the box and click next. If you want, you can choose password for the encryption of your public key (you should this, it is a good security measure). Note that password isn't correlated in any way with your BIP39 password and therefore should be different from it. After you click 'Next', your watching wallet will be ready.
 
-From Electrum you can now see your whole balance, generate addresses, and create unsigned transactions.
+From the Electrum you can now see your balance, generate addresses, and create unsigned transactions.
 
 ### Connecting the Burner Armory
 
-The Burner Armory functions as a little ssh server that provides commands for, reading and writing mnemonics, password and transactions. In order to be able to ssh into this server, you have to set up local network.
+The Burner Armory functions as a little ssh server that provides commands for reading and writing mnemonics, password and transactions. In order to be able to ssh into this server, you have to set up local network.
 
 On the Burner Armory, set the switch to eMMC position. If you are using some kind of network manager on desktop, there is a high chance it will interfere with network connection (it will set up network immediately when armory boots up), so make sure it is a temporarily stopped (eg. `systemctl stop NetworkManager.service`). Connect the Burner USB Armory to the desktop.
 
@@ -172,7 +172,7 @@ Armory will start SSH server that we want to connect to. But we first need to se
 
 If you are not sure what is the name of the armory interface (names can be very cryptic), do `sudo dmesg | grep usb0`, and you will probably find that interface is renamed from `usb0` into something like `enp2s0f0u3`.
 
-Next, set the interface UP, and add address to it (`INTERFACE_NAME` should be adjusted to reflect your configuration):
+Next, set the interface `UP`, and add address to it (`INTERFACE_NAME` should be adjusted to reflect your configuration):
 
 ```bash
 sudo ip link set INTERFACE_NAME up
@@ -195,7 +195,7 @@ Accept fingerprint.
 
 ### Burning μSD cards
 
-Disconnect from any network. If you can, boot up Linux from USB. Close all doors and windows. Disconnect USB cameras, remove all devices (phones, smart watches) from the room.
+Disconnect from any network. If you can, boot up clean Linux from USB.
 
 Configure network as described, and SSH into the Burner Armory. Insert a blank μSD card (we will name this card **S**). Type:
 
@@ -247,7 +247,7 @@ At desktop, connect Burner app to desktop. Repeat network configuration process 
 read tx
 ```
 
-Copy shown text into clipboard.
+Copy shown text into the clipboard.
 
-Open your watch wallet in Electrum. In context menu choose *Tools* > *Load transaction* > *From text*. Paste your clipboard int text box and click on *Load transaction* button. Click on *Broadcast transaction* button.
+Open your watch wallet in Electrum. In context menu choose *Tools* > *Load transaction* > *From text*. Paste your clipboard into the text box and click *Load transaction* button. Click *Broadcast transaction* button.
 
