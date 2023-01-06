@@ -119,7 +119,7 @@ USB Armory has three boot modes: from eMMC (internal storage), form μSD card or
 
 We want to load our app to the internal memory of USB Armories. In order to do that, we will first load `armory-boot-usb` app via SDP. This app will expose the internal memory as a block device on which we can burn our image.
 
-Following procedure will be shown just for the Burner app. For teh Signer app process is exactly the same.
+Following procedure will be shown just for the Burner app. For the Signer app process is exactly the same.
 
 Now, set the switch to μSD position, and remove μSD card. Attach your USB Armory to the desktop using *male* USB connector on the Armory. If you are using any cables or adapters make sure they are good and capable for SDP. Blue and white LEDs on the Armory should start glowing.
 
@@ -153,13 +153,13 @@ Repeat process for the Signer app.
 
 From [Electrum website](https://electrum.org/#download) download Electrum app. Verify downloaded packages following instructions given on website, and install Electrum.
 
-Start the Electrum. Choose an arbitrary name for your watching wallet. Choose the option 'Standard wallet'. Choose the option 'Use a master key' Enter your public key into the box and click next. If you want, you can choose password for the encryption of your public key (you should this, it is a good security measure). Note that password isn't correlated in any way with your BIP39 password and therefore should be different from it. After you click 'Next', your watching wallet will be ready.
+Start the Electrum. Choose an arbitrary name for your watching wallet. Choose *Standard wallet* option. Choose *Use a master key* option. Enter your public key into the box and click *Next* button. If you want, you can choose a password for encryption of your public key (you should this, as it is a good security measure). Note that password isn't correlated in any way with your BIP39 password and therefore should be different from it. After you click *Next*, your watching wallet will be ready.
 
-From the Electrum you can now see your balance, generate addresses, and create unsigned transactions.
+You can now see your balance, generate addresses, and create unsigned transactions.
 
 ### Connecting the Burner Armory
 
-The Burner Armory functions as a little ssh server that provides commands for reading and writing mnemonics, password and transactions. In order to be able to ssh into this server, you have to set up local network.
+The Burner Armory works as a little ssh server that provides commands for reading and writing mnemonics, password and transactions. In order to be able to ssh into this server, you have to set up local network.
 
 On the Burner Armory, set the switch to eMMC position. If you are using some kind of network manager on desktop, there is a high chance it will interfere with network connection (it will set up network immediately when armory boots up), so make sure it is a temporarily stopped (eg. `systemctl stop NetworkManager.service`). Connect the Burner USB Armory to the desktop.
 
@@ -215,7 +215,7 @@ Quit SSH session, and turn off computer. Store **S** and **P** on separate secur
 
 ## Operation
 
-In next lines it will be described how to receive and send coins. It is strongly recommended that you test both procedures with low quantities before you transfer serious amount. 
+In next lines it will be described how to receive and send coins. It is strongly recommended that you test both procedures with low quantities before you transfer any serious amount. 
 
 ### Receiving Bitcoins 
 
