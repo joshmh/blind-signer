@@ -59,22 +59,23 @@ You will need:
 
 1. BIP39 mnemonics with derived public key (TODO: implement seed and PK derivation on burner app)
 2. Desktop with a Linux system
-3. Two USB Armory Mk II
+3. USB Armory Mk II
 4. Three μSD cards
 5. A USB powerbank
-6. Possibly USB3 adapters or cables
+6. Possibly USB3 adapters, μSD adapters, cables
 
 μSD cards don't have to have high capacity (no more then few kilobytes be stored on them). Also, you don't have to format them in any way (data will be written directly to memory and not via filesystem).
 
 Whole project works on few levels: 
 
-1. The *Burner app* is used for preparing μSD cards that hold mnemonics, password and transactions
-2. The *Signer app* is used for signed as described above
-3. Electrum wallet is used for deriving addresses and creating unsigned transactions
+1. The *Burner app* is used for writing and reading data (mnemonics, password and transactions) from μSD cards.
+2. The *Host burner app* is used for the same purpose. Difference is that this app is run on the desktop and not on the Armory.
+3. The *Signer app* is used for signing as described above.
+4. Electrum wallet is used for deriving addresses and creating unsigned transactions.
 
-Burner and Signer apps are made in golang and run on USB Armory. Golang compiler for USB Armory is called [TamaGo](https://github.com/usbarmory/tamago).
+Burner and Signer apps are written in golang and they run exclusively on Armory hardware. Golang compiler for Armory is called [TamaGo](https://github.com/usbarmory/tamago).
 
-If you don't want (can't) to use two USB Armories you can use use one, but you will have to load on it *Signer* and *Burner* apps over and over. It is better to have ready two USB Armories loaded with each app.
+If you don't want (or can't) to use two Armories (one for Burner and one for Signer app), you can use use one but you will have to load on it apps over and over. It is better to have ready two USB Armories loaded with each app. On the other hand, you don't have to use *Burner* app at all. Use the equivalent *Host burner app*.
 
 ### Installing required dependencies 
 
@@ -112,16 +113,16 @@ make CROSS_COMPILE=arm-none-eabi- imx
 
 ### Burning apps to Armories
 
-USB Armory has three boot modes: from eMMC (internal storage), form μSD card or via serial download protocol (USB boot). On the Armory there is the little slide switch. Switch position determines boot sequence:
+USB Armory has three boot modes: from eMMC (internal storage), form μSD card or via serial download protocol (SDP) (USB boot). On the Armory there is the little slide switch. Switch position determines boot sequence:
 
 1. **eMMC position**: Try eMMC. Fall back to μSD. Fall back to USB SDP mode
 2. **μSD position**: Try μSD. Fall back to USB SDP mode
 
 We want to load our app to the internal memory of USB Armories. In order to do that, we will first load `armory-boot-usb` app via SDP. This app will expose the internal memory as a block device on which we can burn our image.
 
-Following procedure will be shown just for the Burner app. For the Signer app process is exactly the same.
+Following procedure will be shown just for the Signer app. For the Burner app process is exactly the same.
 
-Now, set the switch to μSD position, and remove μSD card. Attach your USB Armory to the desktop using *male* USB connector on the Armory. If you are using any cables or adapters make sure they are good and capable for SDP. Blue and white LEDs on the Armory should start glowing.
+Now, set the switch to μSD position, and remove μSD card. Attach your USB Armory to the desktop using *male* USB connector on the Armory. If you are using any cables or adapters make sure they are good and capable for USB3. Blue and white LEDs on the Armory should start glowing dimly.
 
 In the `armory-ums` repo, run:
 
@@ -133,21 +134,21 @@ This will start loading `armory-ums` app into the Armory's internal memory. Load
 
 If you didn't get eny error message form `armory-boot-usb`, download is complete, and armory will boot system from RAM. You must not take off armory form USB! Moment you remove armory from power system will disappear form RAM, and you will have it to download it again.
 
-In the `burner/` directory build the Burner app:
+In the `signer/` directory build the Signer app:
 
 ```bash
 make imx TARGET=usbarmory
 ```
 
-This will produce the `blind-signer-burner.imx` file which is a bootable image ready to be loaded into Armory's internal memory. Find name of the Armory block device via `df` and then run (replacing `TARGET_DEV` with appropriate file):
+This will produce the `blind-signer-signer.imx` file which is a bootable image ready to be loaded into Armory's internal memory. Find name of the Armory block device via `df` and then run (replacing `TARGET_DEV` with appropriate file):
 
 ```bash
-sudo dd if=blind-signer-burner.imx of=TARGET_DEV bs=512 seek=2 conv=fsync
+sudo dd if=blind-signer-signer.imx of=TARGET_DEV bs=512 seek=2 conv=fsync
 ```
 
-After `dd` finishes, you can safely detach your Armory. From now on it has the Burner app on it.
+After `dd` finishes, you can safely detach your Armory. From now on it has the Signer app on it.
 
-Repeat process for the Signer app.
+Repeat process for the Burner app.
 
 ### Installing and configuring Electrum
 
@@ -157,61 +158,41 @@ Start the Electrum. Choose an arbitrary name for your watching wallet. Choose *S
 
 You can now see your balance, generate addresses, and create unsigned transactions.
 
-### Connecting the Burner Armory
+### Burning data to the SD cards
 
-The Burner Armory works as a little ssh server that provides commands for reading and writing mnemonics, password and transactions. In order to be able to ssh into this server, you have to set up local network.
+*If you want, you can use Burner armory to write data to the cards. See appendix section.*
 
-On the Burner Armory, set the switch to eMMC position. If you are using some kind of network manager on desktop, there is a high chance it will interfere with network connection (it will set up network immediately when armory boots up), so make sure it is a temporarily stopped (eg. `systemctl stop NetworkManager.service`). Connect the Burner USB Armory to the desktop.
-
-Armory will start SSH server that we want to connect to. But we first need to set up network. Find name of Armory network device via `ip a`. You will see something like this:
+In `host-burner/` directory run golang compiler:
 
 ```bash
-4: enp2s0f0u3: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
-    link/ether 02:94:fd:c2:fa:2f brd ff:ff:ff:ff:ff:ff
+go build burner.go
 ```
 
-If you are not sure what is the name of the armory interface (names can be very cryptic), do `sudo dmesg | grep usb0`, and you will probably find that interface is renamed from `usb0` into something like `enp2s0f0u3`.
-
-Next, set the interface `UP`, and add address to it (`INTERFACE_NAME` should be adjusted to reflect your configuration):
-
-```bash
-sudo ip link set INTERFACE_NAME up
-sudo ip addr add 10.0.0.2/24 dev INTERFACE_NAME
-```
-
-Next, set up IP masquerade (replace `DEV` with name of your main network device which can also be find with `ip a`) [IS THIS NECESSARY?]
-
-```bash
-iptables -t nat -A POSTROUTING -s 10.0.0.1/32 -o DEV -j MASQUERADE
-```
-
-After succesfully configure the network, you can ssh into it:
+Insert a blank μSD card (we will name this card **S**). Via command `df` find the name of the inserted card *device* (example `/dev/sdc`). Type:
 
 ```
-ssh root@10.0.0.1
+./burner -burn -type mnemonics -device DEVICE_NAME
 ```
 
-Accept fingerprint.
-
-### Burning μSD cards
-
-Disconnect from any network. If you can, boot up clean Linux from USB.
-
-Configure network as described, and SSH into the Burner Armory. Insert a blank μSD card (we will name this card **S**). Type:
+You will be prompted for your mnemonics and then asked to confirm action. After you confirm action, the card will be burned with  mnemonics. You can confirm that data is properly written via
 
 ```
-write mnemonics YOUR_MNEMONICS
+./burner -type mnemonics -device DEVICE_NAME
 ```
 
-Triple check what you wrote. Remove card **S**, and insert new blank card (we will name this card **P**). Type:
+Remove card **S** and insert a new blank μSD card (we will name this card **P**). Again, find name of block device with `df` command. Type:
 
 ```
-write mnemonics YOUR_PASSWORD
+./burner -burn -type password -device DEVICE_NAME
 ```
 
-Triple check what you wrote. Remove card **P**.
+You will be prompted for your password and then asked to confirm action. After you confirm action, the card will be burned with  mnemonics. You can confirm that data is properly written via
 
-Quit SSH session, and turn off computer. Store **S** and **P** on separate secure and secret locations.
+```
+./burner -type password -device DEVICE_NAME
+```
+
+Remove card **P**.
 
 ## Operation
 
@@ -225,15 +206,17 @@ Open Electrum, and open the watch wallet you created. Switch to *Receive* tab, a
 
 #### Creating the transaction
 
-Open Electrum. Click on *Send* tab. Chose amount and click on the *Pay...* button. Click on the *Advanced* button. Choose target fee and click on the *Finalize* button. Click *Export*, *Export to clipboard*. 
+Open Electrum. Click on *Send* tab. Chose amount and click on the *Pay...* button. Click on the *Advanced* button. Choose target fee and click on the *Finalize* button. Click *Export*, *Export to file*. 
 
-Connect the Burner Armory and SSH into it. Insert blank μSD card (we will name this card **T**). Type
+Insert μSD card into computer and find name of block device via `df`. Run `host-burner` app:
 
 ```
-write psbt HERE_PASTE_YOUR_CLIPBOARD
+./burner -burn -binary -type psbt -file PATH_TO_PSBT -device DEVICE_NAME
 ```
 
-After USB armory writes PSBT, you can exit SHH session and disconnect Armory (maybe you want you can leave this Armory connected in order to skip same network configuration afterwards when you want to load signed transaction).
+After you get confirmation message, remove μSD card.
+
+Note: you can also Burner armory for this. In that case, export transaction from Electrum via *Export to clipboard* option. In Armory ssh terminal run `write psbt YOUR_PSBT`.
 
 #### Signing the transaction
 
@@ -241,13 +224,56 @@ Now you can sign transaction via the Signer armory. On the secure location bring
 
 #### Broadcasting the transaction
 
-At desktop, connect Burner app to desktop. Repeat network configuration process if needed. Isert **T** cart into the Armory and SHH into it. Run:
+Insert **T** card into the desktop and find name of block device. Run `host-burner` app:
 
 ```
-read tx
+./burner -binary -type tx -file OUTPUT_FILE -device DEVICE_NAME
 ```
 
-Copy shown text into the clipboard.
+Set `OUTPUT_FILE` to path where you want to save your transaction. Add `.psbt` as file format. Open your watch wallet in Electrum. In context menu choose *Tools* > *Load transaction* > *From file* and choose the `.psbt` file you just saved. Click *Broadcast transaction* button.
 
-Open your watch wallet in Electrum. In context menu choose *Tools* > *Load transaction* > *From text*. Paste your clipboard into the text box and click *Load transaction* button. Click *Broadcast transaction* button.
+Alternatively you can use the Burner app for loading transactions via Burner armory. In that case read transaction via `read tx` command in Armory ssh. In Electrum, load transaction via *Tools* > *Load transaction* > *From text* option.
 
+## Appendix A: Burning data with Burner Armory
+
+The Burner Armory works as a little ssh server that provides commands for reading and writing mnemonics, password and transactions. In order to be able to ssh into this server, you have to set up local network.
+
+On the Burner Armory, set the switch to eMMC position. If you are using some kind of network manager on desktop, there is a high chance it will interfere with network connection (it will set up network immediately when armory boots up), so make sure it is a temporarily stopped (eg. `systemctl stop NetworkManager.service`). Connect the Burner USB Armory to the desktop.
+
+Armory will start a SSH server that we want to connect to. But first we need to set up a network in order to be able to SHH into the server. Find the name of the Armory device via `ip a`. You will see something like this:
+
+```bash
+4: enp2s0f0u3: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 02:94:fd:c2:fa:2f brd ff:ff:ff:ff:ff:ff
+```
+
+If you are not sure what is the name of the interface (names can be very cryptic), enter `sudo dmesg | grep cdc_ether` into terminal, and you will probably find that interface is renamed from `usb0` into something like `enp2s0f0u3`.
+
+Next, set the interface `UP`, and add an address to it (`INTERFACE_NAME` should be adjusted to reflect your configuration):
+
+```bash
+sudo ip link set INTERFACE_NAME up
+sudo ip addr add 10.0.0.2/24 dev INTERFACE_NAME
+```
+
+Next, set up a IP masquerade (replace `DEV` with name of your main network device which can also be find with `ip a`) [IS THIS NECESSARY?]
+
+```bash
+iptables -t nat -A POSTROUTING -s 10.0.0.1/32 -o DEV -j MASQUERADE
+```
+
+After successfull network configuration, you can SSH into it:
+
+```
+ssh root@10.0.0.1
+```
+
+Accept fingerprint.
+
+### Burning μSD cards 
+
+Insert a blank μSD card (we will name this card **S**). Type `write mnemonics YOUR_MNEMONICS` to burn your mnemonics to the card. To check if mnemonic is properly written type `read mnemonics`. After confirmation, remove card **S**.
+
+Insert a new blank card (we will name this card **P**). Type `write password YOUR_PASSWORD`. Check if password is properly written with `read password`. After confirmation, remove card  **P**.
+
+Same goes for transactions (`psbt` for unsigned and `tx` for signed).
