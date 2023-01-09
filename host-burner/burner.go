@@ -15,50 +15,73 @@ import (
 
 func main() {
 	burn, binary, device, file, datatype := parseArguments()
-	confirmChoice(burn, binary, device, file, datatype)
-
-	// All variables are self-explanatory except `binary`.
-	// If `binary` is set to true, data will be decoded to base64 before saving to SD card,
-	// and decoded from base64 after loading form SD card.
-	// This is helpful for burning (loading) transactions file directly from (to) Electrum
 
 	if burn {
-		var stringToSave string
-		data := loadFromFile(file)
-
-		if binary {
-			stringToSave = base64.StdEncoding.EncodeToString(data)
-		} else {
-			stringToSave = string(data)
-		}
-
-		packedData, err := proto.Marshal(datatype, stringToSave)
-		check(err)
-
-		saveToDevice(device, datatype, packedData)
+		burnToSD(burn, binary, device, file, datatype)
 	} else {
-		var dataToSave []byte
-
-		data := loadFromDevice(device, datatype)
-
-		extractedType, extractedData, err := proto.Unmarshal(data)
-		check(err)
-
-		if extractedType != datatype {
-			check(errors.New("Types not matching"))
-		}
-
-		if binary {
-			dataToSave, err = base64.StdEncoding.DecodeString(extractedData)
-			check(err)
-		} else {
-			dataToSave = []byte(extractedData)
-		}
-
-		saveToFile(file, dataToSave)
+		extractFromSD(burn, binary, device, file, datatype)
 	}
 
-	fmt.Println("Done. You can now safely remove SD card.")
+	fmt.Println("\033[1;32mDone!\033[0m You can now safely remove SD card.")
+}
+
+func burnToSD(burn, binary bool, device, file, datatype string) {
+	var stringToSave string
+	var data []byte
+
+	if file != "" {
+		confirmChoice(fmt.Sprintf("You will load %s from %s and save it into %s.", datatype, file, device))
+		data = loadFromFile(file)
+	} else {
+		fmt.Printf("Input file not specified. Please enter your %s. Press Enter to finish input.\n", datatype)
+		data = getDataFromPrompt()
+		if len(data) > 0 {
+			data = data[:len(data)-1]
+		}
+		confirmChoice(fmt.Sprintf("You will save %s into %s.", datatype, device))
+	}
+
+	if binary {
+		stringToSave = base64.StdEncoding.EncodeToString(data)
+	} else {
+		stringToSave = string(data)
+	}
+
+	packedData, err := proto.Marshal(datatype, stringToSave)
+	check(err)
+
+	saveToDevice(device, datatype, packedData)
+}
+
+func extractFromSD(burn, binary bool, device, file, datatype string) {
+	if file != "" {
+		confirmChoice(fmt.Sprintf("You will load %s from %s and save it into %s.", datatype, device, file))
+	} else {
+		confirmChoice(fmt.Sprintf("You will load %s from %s and display it in terminal.", datatype, device))
+	}
+
+	var dataToSave []byte
+	data := loadFromDevice(device, datatype)
+
+	extractedType, extractedData, err := proto.Unmarshal(data)
+	check(err)
+
+	if extractedType != datatype {
+		check(errors.New("Types not matching"))
+	}
+
+	if binary {
+		dataToSave, err = base64.StdEncoding.DecodeString(extractedData)
+		check(err)
+	} else {
+		dataToSave = []byte(extractedData)
+	}
+
+	if file != "" {
+		saveToFile(file, dataToSave)
+	} else {
+		fmt.Println(extractedData)
+	}
 }
 
 func loadFromFile(filePath string) []byte {
@@ -130,7 +153,7 @@ func saveToDevice(devicePath, dataType string, data []byte) {
 
 func check(e error) {
 	if e != nil {
-		fmt.Println(e)
+		fmt.Printf("\033[1;31m%s\033[0m\n", e)
 		os.Exit(1)
 	}
 }
@@ -167,17 +190,12 @@ func parseArguments() (bool, bool, string, string, string) {
 		os.Exit(1)
 	}
 
-	if *fileFlag == "" {
-		fmt.Println("File flag is mandatory")
-		os.Exit(1)
-	}
-
 	if *devFlag == "" {
 		fmt.Println("Device flag is mandatory")
 		os.Exit(1)
 	}
 
-	if *burnFlag {
+	if *burnFlag && *fileFlag != "" {
 		_, err := os.Stat(*fileFlag)
 		if errors.Is(err, os.ErrNotExist) {
 			fmt.Printf("File %s doesn't exists!\n", *fileFlag)
@@ -188,12 +206,16 @@ func parseArguments() (bool, bool, string, string, string) {
 	return *burnFlag, *binaryFlag, *devFlag, *fileFlag, *typeFlag
 }
 
-func confirmChoice(burn, binary bool, device, file, datatype string) {
-	if burn {
-		fmt.Printf("You will load %s from %s and save it into %s. Are you sure? [y/n]: ", datatype, file, device)
-	} else {
-		fmt.Printf("You will load %s from %s and save it into %s. Are you sure? [y/n]: ", datatype, device, file)
-	}
+func getDataFromPrompt() []byte {
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	check(err)
+
+	return []byte(response)
+}
+
+func confirmChoice(message string) {
+	fmt.Printf("%s Are you sure? [y/n]: ", message)
 
 	reader := bufio.NewReader(os.Stdin)
 	yesNo, _ := reader.ReadString('\n')

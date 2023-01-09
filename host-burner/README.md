@@ -15,19 +15,19 @@ This will create `burner` binary.
 ## Usage
 
 ```
-burner [-burn] [-binary] -type TYPE -file FILE -device DEVICE
+burner [-burn] [-binary] -type TYPE [-file FILE] -device DEVICE
 ```
 
 + `-burn` If provided, data will be burned from local file to μSD. Otherwise, data will be loaded from μSD. Optional argument.
 + `-binary` When burning, data will be encoded in base64 before writing to block device. When loading data from device, data will be decoded from base64 before writing to a local file. This useful when you want to burn `.psbt` file exported from the Electrum, or when you want to load signed transaction to the Electrum. Optional argument. 
-+ `-type` Specifies type of data that is transfered. Can be `mnemonic`, `password`, `psbt` or `tx`. Mandatory argument.
-+ `-file` Specifies the local file. Mandatory argument.
++ `-type` Specifies type of data that is transferred. Can be `mnemonic`, `password`, `psbt` or `tx`. Mandatory argument.
++ `-file` Specifies the local file. Optional argument. If not specified, user will be prompted to enter data (if data is burned) or data will be displayed in terminal (if we load data from card).
 + `-device` Specifies the block device. Mandatory argument.
 
 
-Note that we want to use device name (say `/dev/sdb`) and not partition name (say `/dev/sdb1`). You can identify devices via `df` command.
+Note that we want to use the device name (say `/dev/sdb`) and not a partition name (say `/dev/sdb1`). You can identify devices via `df` command.
 
-You probably want to run app via sudo (otherwise OS system can block you form reading/writing to the device)
+You maybe want to run the app with sudo (otherwise OS system can block you form reading/writing to the device)
 
 ## Warnings
 
