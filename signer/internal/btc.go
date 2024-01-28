@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/txscript"
@@ -66,7 +67,7 @@ func SignInput(p *psbt.Packet, index int, masterKey *hdkeychain.ExtendedKey) (*p
 	sigHashes := txscript.NewTxSigHashes(p.UnsignedTx, prevOutputFetcher)
 
 	sig, err := txscript.RawTxInWitnessSignature(p.UnsignedTx, sigHashes, index,
-		utxo.Value, utxo.PkScript,
+		utxo.Value, input.WitnessScript,
 		txscript.SigHashAll, privKey)
 	if err != nil {
 		return nil, err
