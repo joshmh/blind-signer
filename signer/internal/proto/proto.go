@@ -1,7 +1,7 @@
 package proto
 
 import (
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 func Marshal(dataType string, dataValue string) ([]byte, error) {

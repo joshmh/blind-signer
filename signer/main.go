@@ -1,21 +1,21 @@
 package main
 
 import (
-	"gitlab.lamassu.is/pazuz/blind-signer/signer/internal"
-
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
+	"gitlab.lamassu.is/pazuz/blind-signer/signer/internal/armory"
+	"gitlab.lamassu.is/pazuz/blind-signer/signer/internal/btc"
 )
 
 func init() {
-	internal.SwitchLed("white", false)
-	internal.SwitchLed("blue", false)
+	armory.SwitchLed("white", false)
+	armory.SwitchLed("blue", false)
 }
 
 func readData(dataType string) string {
-	value, err := internal.ReadData(dataType)
+	value, err := armory.ReadData(dataType)
 	if err != nil {
-		internal.WaitForSDCardInsert()
+		armory.WaitForSDCardInsert()
 		return readData(dataType)
 	} else {
 		return value
@@ -23,29 +23,29 @@ func readData(dataType string) string {
 }
 
 func main() {
-	internal.SwitchLed("white", true)
+	armory.SwitchLed("white", true)
 
-	internal.WaitForSDCardInsert()
+	armory.WaitForSDCardInsert()
 
 	mnemonic := readData("mnemonic")
 
-	internal.SwitchLed("blue", true)
+	armory.SwitchLed("blue", true)
 
-	internal.WaitForSDCardRemove()
+	armory.WaitForSDCardRemove()
 
-	internal.SwitchLed("blue", false)
+	armory.SwitchLed("blue", false)
 
-	internal.WaitForSDCardInsert()
+	armory.WaitForSDCardInsert()
 
 	password := readData("password")
 
-	internal.SwitchLed("blue", true)
+	armory.SwitchLed("blue", true)
 
-	internal.WaitForSDCardRemove()
+	armory.WaitForSDCardRemove()
 
-	internal.SwitchLed("blue", false)
+	armory.SwitchLed("blue", false)
 
-	internal.WaitForSDCardInsert()
+	armory.WaitForSDCardInsert()
 
 	psbt := readData("psbt")
 
@@ -53,13 +53,13 @@ func main() {
 	masterKey, _ := bip32.NewMasterKey(seed)
 	masterKeyString := masterKey.String()
 
-	tx, err := internal.SignTx(psbt, masterKeyString)
+	tx, err := btc.SignTx(psbt, masterKeyString)
 	if err != nil {
-		internal.BlinkLed("blue")
+		armory.BlinkLed("blue")
 	}
 
-	internal.WriteData("tx", tx)
+	armory.WriteData("tx", tx)
 
-	internal.SwitchLed("blue", true)
-	internal.BlinkLed("white")
+	armory.SwitchLed("blue", true)
+	armory.BlinkLed("white")
 }

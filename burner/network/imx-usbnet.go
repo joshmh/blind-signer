@@ -3,7 +3,7 @@ package network
 import (
 	"log"
 
-	"github.com/usbarmory/imx-usbnet"
+	usbnet "github.com/usbarmory/imx-usbnet"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 )
 
