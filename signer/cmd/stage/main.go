@@ -5,8 +5,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/tyler-smith/go-bip32"
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/tyler-smith/go-bip39"
 	"gitlab.lamassu.is/pazuz/blind-signer/signer/internal/btc"
 )
@@ -29,16 +31,22 @@ func main() {
 	password := readData(passwordFilePath)
 	psbt := readBytes(psbtFilePath)
 
+	mnemonic = strings.ReplaceAll(mnemonic, "\n", "")
+	password = strings.ReplaceAll(password, "\n", "")
+
+	fmt.Println("Mnemonic:", mnemonic)
+	fmt.Println("Password:", password)
+
 	// Derive master key from mnemonic
 	seed := bip39.NewSeed(mnemonic, password)
-	masterKey, err := bip32.NewMasterKey(seed)
+
+	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
 	if err != nil {
 		log.Fatalf("Failed to create master key: %v", err)
 	}
-	masterKeyString := masterKey.String()
 
 	// Sign the transaction
-	tx, err := btc.SignTx(psbt, masterKeyString)
+	tx, err := btc.SignTx(psbt, masterKey)
 	if err != nil {
 		fmt.Printf("Error: %+v\n", err)
 		log.Fatalf("Failed to sign transaction: %v", err)
