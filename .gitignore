@@ -4,3 +4,6 @@ host-burner/burner
 signer/cmd/stage/stage
 signer/cmd/stage/signer
 go.work.sum
+play/
+signer/bin
+

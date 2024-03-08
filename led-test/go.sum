@@ -1,0 +1,4 @@
+github.com/usbarmory/tamago v0.0.0-20240306113720-d7dd77b4ed17 h1:G5IsBi3MGrJG7LG/bbCSBhue3zaFvIVJ5FHtt1BQE/Y=
+github.com/usbarmory/tamago v0.0.0-20240306113720-d7dd77b4ed17/go.mod h1:uCPXcPo8SZulhZPz8irfVqzwVlPZ45w7CTJxkfxueGA=
+golang.org/x/sync v0.6.0 h1:5BMeUDZ7vkXGfEr1x9B4bRcTH4lpkTkpdh0T/J+qjbQ=
+golang.org/x/sync v0.6.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
