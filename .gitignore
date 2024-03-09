@@ -6,4 +6,3 @@ signer/cmd/stage/signer
 go.work.sum
 play/
 signer/bin
-

@@ -5,15 +5,21 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"
 	"gitlab.lamassu.is/pazuz/blind-signer/signer/internal/btc"
 )
 
-func sign(handle string) {
+const (
+	version = "1.1.0"
+)
+
+func sign(coin_type uint32, account uint32, handle string) {
 	// Read mnemonic and password from files
 	mnemonic := readData("play/toxic/mn.txt")
 	password := readData("play/toxic/pw.txt")
@@ -26,41 +32,64 @@ func sign(handle string) {
 	}
 
 	// Process transactions from the txs directory
-	txsDir := "play/txs"
+	txsDir := "play/unsigned"
 	signedDir := "play/signed"
-	err = processTransactions(txsDir, signedDir, handle, masterKey)
+	total_success, err := processTransactions(coin_type, account, txsDir, signedDir, handle, masterKey)
 	if err != nil {
 		log.Fatalf("Failed to process transactions: %v", err)
+	} else {
+		if total_success {
+			fmt.Println("All transactions signed successfully.")
+			err := os.RemoveAll("play/toxic")
+			if err != nil {
+				log.Fatalf("Failed to delete toxic directory: %v", err)
+			}
+			fmt.Println("Toxic directory deleted.")
+		} else {
+			fmt.Println("Some transactions failed to sign, leaving toxic directory intact.")
+		}
 	}
-
-	fmt.Println("All transactions processed successfully.")
 }
 
 func main() {
 	// Parse command-line arguments
 	if len(os.Args) < 2 {
 		fmt.Println("Usage:")
-		fmt.Println("  kamchatka init")
-		fmt.Println("  kamchatka sign <handle>")
-		fmt.Println("\nVersion: 1.0.0")
+		fmt.Println("  stevie init")
+		fmt.Println("  stevie sign <handle> <account> [--testnet]")
+		fmt.Printf("\nVersion: %s\n", version)
 		os.Exit(1)
 	}
 	cmd := os.Args[1]
 
 	if cmd == "init" {
-		fmt.Println("Initializing kamchatka directories...")
+		fmt.Println("Initializing stevie directories...")
 		createDirectory("play")
-		createDirectory("play/txs")
+		createDirectory("play/unsigned")
 		createDirectory("play/signed")
 		createDirectory("play/toxic")
 		fmt.Println("Done.")
 	} else if cmd == "sign" {
-		if len(os.Args) != 3 {
-			fmt.Println("Usage: kamchatka sign <handle>")
+		if len(os.Args) != 4 && len(os.Args) != 5 {
+			fmt.Println("Usage: stevie sign <handle> <account> [--testnet]")
 			os.Exit(1)
 		}
+
 		handle := os.Args[2]
-		sign(handle)
+
+		accountStr := os.Args[3]
+		account, err := strconv.ParseUint(accountStr, 10, 32)
+		if err != nil {
+			fmt.Printf("Invalid account value: %s\n", accountStr)
+			os.Exit(1)
+		}
+
+		coin_type := uint32(0)
+		if len(os.Args) == 5 && os.Args[4] == "--testnet" {
+			coin_type = uint32(1)
+		}
+
+		sign(coin_type, uint32(account), handle)
 	} else {
 		fmt.Println("Invalid command")
 		os.Exit(1)
@@ -74,12 +103,15 @@ func createDirectory(dir string) {
 	}
 }
 
-func processTransactions(txsDir, signedDir, handle string, masterKey *hdkeychain.ExtendedKey) error {
+func processTransactions(coin_type uint32, account uint32, txsDir string, signedDir string, handle string, masterKey *hdkeychain.ExtendedKey) (total_success, error) {
 	// Read transactions from the txs directory
 	files, err := os.ReadDir(txsDir)
 	if err != nil {
-		return fmt.Errorf("failed to read txs directory [%s]: %v", txsDir, err)
+		return 0, fmt.Errorf("failed to read txs directory [%s]: %v", txsDir, err)
 	}
+
+	count := 0
+	signedCount := 0
 
 	for _, file := range files {
 		if file.IsDir() {
@@ -87,30 +119,30 @@ func processTransactions(txsDir, signedDir, handle string, masterKey *hdkeychain
 		}
 
 		txnFilename := file.Name()
-		parts := strings.Split(txnFilename, "_")
-		if len(parts) != 2 {
-			log.Printf("Skipping invalid transaction file: %s", txnFilename)
+		txnFilenameWithoutSuffix := strings.TrimSuffix(txnFilename, filepath.Ext(txnFilename))
+		txnFilePath := filepath.Join(txsDir, txnFilename)
+		psbt, err := readBytes(txnFilePath)
+		if err != nil {
+			log.Printf("Failed to read transaction %s: %v", txnFilename, err)
 			continue
 		}
 
-		name := parts[0]
-		account := strings.TrimSuffix(parts[1], ".psbt")
-
-		txnFilePath := filepath.Join(txsDir, txnFilename)
-		psbt := readBytes(txnFilePath)
+		count += 1
 
 		// Sign the transaction
-		tx, err := btc.SignTx(psbt, masterKey)
+		tx, err := btc.SignTx(coin_type, account, psbt, masterKey)
 		if err != nil {
 			log.Printf("Failed to sign transaction %s: %v", txnFilename, err)
 			continue
 		}
 
+		signedCount += 1
+
 		// Convert tx from string to []byte
 		txBytes := []byte(tx)
 
 		// Write the signed transaction to the signed directory
-		signedTxnFilename := fmt.Sprintf("%s_%s_%s_signed.psbt", name, account, handle)
+		signedTxnFilename := fmt.Sprintf("%s_signed_%s.psbt", txnFilenameWithoutSuffix, handle)
 		signedTxnFilePath := filepath.Join(signedDir, signedTxnFilename)
 		err = os.WriteFile(signedTxnFilePath, txBytes, os.ModePerm)
 		if err != nil {
@@ -121,15 +153,16 @@ func processTransactions(txsDir, signedDir, handle string, masterKey *hdkeychain
 		fmt.Printf("Transaction %s signed and saved as %s\n", txnFilename, signedTxnFilename)
 	}
 
-	return nil
+	fmt.Printf("\nSigned %d out of %d transactions\n", signedCount, count)
+	return signedCount == count, nil
 }
 
-func readBytes(filepath string) []byte {
+func readBytes(filepath string) ([]byte, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
-		log.Fatalf("Failed to read file at %s: %v", filepath, err)
+		return nil, errors.Wrap(err, "Error reading file")
 	}
-	return data
+	return data, nil
 }
 
 func readData(filePath string) string {
