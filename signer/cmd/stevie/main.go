@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	version = "1.1.0"
+	version = "2.0.0"
 )
 
 func sign(coin_type uint32, account uint32, handle string) {
@@ -129,26 +129,17 @@ func processTransactions(coin_type uint32, account uint32, txsDir string, signed
 
 		count += 1
 
+		// Write the signed transaction to the signed directory
+		signedTxnFilename := fmt.Sprintf("%s_signed_%s.psbt", txnFilenameWithoutSuffix, handle)
+		signedTxnFilePath := filepath.Join(signedDir, signedTxnFilename)
+
 		// Sign the transaction
-		tx, err := btc.SignTx(coin_type, account, psbt, masterKey)
+		err = btc.SignTx(coin_type, account, psbt, masterKey, signedTxnFilePath)
 		if err != nil {
 			log.Printf("Failed to sign transaction %s: %v", txnFilename, err)
 			continue
 		}
-
 		signedCount += 1
-
-		// Convert tx from string to []byte
-		txBytes := []byte(tx)
-
-		// Write the signed transaction to the signed directory
-		signedTxnFilename := fmt.Sprintf("%s_signed_%s.psbt", txnFilenameWithoutSuffix, handle)
-		signedTxnFilePath := filepath.Join(signedDir, signedTxnFilename)
-		err = os.WriteFile(signedTxnFilePath, txBytes, os.ModePerm)
-		if err != nil {
-			log.Printf("Failed to write signed transaction %s: %v", signedTxnFilename, err)
-			continue
-		}
 
 		fmt.Printf("Transaction %s signed and saved as %s\n", txnFilename, signedTxnFilename)
 	}

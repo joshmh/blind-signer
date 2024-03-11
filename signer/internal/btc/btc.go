@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/bits"
+	"os"
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -97,7 +98,7 @@ func SignInput(p *psbt.Packet, index int, masterKey *hdkeychain.ExtendedKey, fin
 			)
 			sigHashes := txscript.NewTxSigHashes(p.UnsignedTx, prevOutputFetcher)
 
-			if input.SighashType != txscript.SigHashAll {
+			if input.SighashType != txscript.SigHashAll && input.SighashType != txscript.SigHashDefault {
 				return nil, errors.New("Only SIGHASH_ALL is supported")
 			}
 
@@ -131,14 +132,14 @@ func SignInput(p *psbt.Packet, index int, masterKey *hdkeychain.ExtendedKey, fin
 	return p, nil
 }
 
-func SignTx(coin_type uint32, account uint32, psbtBytes []byte, extPrivateKey *hdkeychain.ExtendedKey) (string, error) {
+func SignTx(coin_type uint32, account uint32, psbtBytes []byte, extPrivateKey *hdkeychain.ExtendedKey, out_file string) error {
 	// Create reader for the PSBT
 	r := bytes.NewReader(psbtBytes)
 
 	// Create instance of a PSBT
 	p, err := psbt.NewFromRawBytes(r, false)
 	if err != nil {
-		return "", errors.Wrap(err, "Error parsing PSBT")
+		return errors.Wrap(err, "Error parsing PSBT")
 	}
 
 	// Derivation path is m / purpose' / coin_type' / account' / change / address_index
@@ -147,19 +148,19 @@ func SignTx(coin_type uint32, account uint32, psbtBytes []byte, extPrivateKey *h
 	masterKey := extPrivateKey
 	childKey, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 48)
 	if err != nil {
-		log.Fatalf("Failed to derive key: %v", err)
+		return errors.Wrap(err, "Failed to derive key")
 	}
 
 	// Coin type; 0 for mainnet, 1 for testnet
 	childKey, err = childKey.Derive(hdkeychain.HardenedKeyStart + coin_type)
 	if err != nil {
-		log.Fatalf("Failed to derive key: %v", err)
+		return errors.Wrap(err, "Failed to derive key")
 	}
 
 	// Account
 	childKey, err = childKey.Derive(hdkeychain.HardenedKeyStart + account)
 	if err != nil {
-		log.Fatalf("Failed to derive key: %v", err)
+		return errors.Wrap(err, "Failed to derive key")
 	}
 
 	fingerprint := ComputeFingerprint(childKey)
@@ -168,10 +169,22 @@ func SignTx(coin_type uint32, account uint32, psbtBytes []byte, extPrivateKey *h
 	for index := range p.Inputs {
 		_, err := SignInput(p, index, childKey, fingerprint)
 		if err != nil {
-			return "", errors.Wrap(err, "Error signing input")
+			return errors.Wrap(err, "Error signing input")
 		}
 	}
 
-	s, err := p.B64Encode()
-	return s, err
+	// Open a file for writing
+	file, err := os.Create(out_file) // os.Create opens or creates a file for writing and truncates it
+	if err != nil {
+		return errors.Wrap(err, "Error opening file for writing")
+	}
+	defer file.Close()
+
+	// Serialize the PSBT directly into the file
+	err = p.Serialize(file)
+	if err != nil {
+		return errors.Wrap(err, "Error serializing PSBT")
+	}
+
+	return nil
 }
