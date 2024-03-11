@@ -103,11 +103,11 @@ func createDirectory(dir string) {
 	}
 }
 
-func processTransactions(coin_type uint32, account uint32, txsDir string, signedDir string, handle string, masterKey *hdkeychain.ExtendedKey) (total_success, error) {
+func processTransactions(coin_type uint32, account uint32, txsDir string, signedDir string, handle string, masterKey *hdkeychain.ExtendedKey) (bool, error) {
 	// Read transactions from the txs directory
 	files, err := os.ReadDir(txsDir)
 	if err != nil {
-		return 0, fmt.Errorf("failed to read txs directory [%s]: %v", txsDir, err)
+		return false, fmt.Errorf("failed to read txs directory [%s]: %v", txsDir, err)
 	}
 
 	count := 0

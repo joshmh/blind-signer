@@ -97,6 +97,10 @@ func SignInput(p *psbt.Packet, index int, masterKey *hdkeychain.ExtendedKey, fin
 			)
 			sigHashes := txscript.NewTxSigHashes(p.UnsignedTx, prevOutputFetcher)
 
+			if input.SighashType != txscript.SigHashAll {
+				return nil, errors.New("Only SIGHASH_ALL is supported")
+			}
+
 			sig, err := txscript.RawTxInWitnessSignature(p.UnsignedTx, sigHashes, index,
 				utxo.Value, input.WitnessScript,
 				txscript.SigHashAll, privKey)
@@ -117,11 +121,6 @@ func SignInput(p *psbt.Packet, index int, masterKey *hdkeychain.ExtendedKey, fin
 				return nil, errors.Wrap(err, "Error signing PSBT")
 			}
 
-			// // Finalize PSBT.
-			// err = psbt.Finalize(p, index)
-			// if err != nil {
-			// 	return nil, errors.Wrap(err, "Error finalizing PSBT")
-			// }
 			return p, nil
 		}
 	}
@@ -139,7 +138,7 @@ func SignTx(coin_type uint32, account uint32, psbtBytes []byte, extPrivateKey *h
 	// Create instance of a PSBT
 	p, err := psbt.NewFromRawBytes(r, false)
 	if err != nil {
-		return "", errors.Wrap(err, "Error creating PSBT")
+		return "", errors.Wrap(err, "Error parsing PSBT")
 	}
 
 	// Derivation path is m / purpose' / coin_type' / account' / change / address_index

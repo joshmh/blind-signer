@@ -12,7 +12,7 @@ func main() {
 		usbarmory.LED("white", false)
 		time.Sleep(time.Second / 2)
 		usbarmory.LED("blue", false)
-		usbarmory.LED("whilte", true)
-		time.Sleep(time.Second / 2)
+		usbarmory.LED("white", true)
+		time.Sleep(time.Second)
 	}
 }

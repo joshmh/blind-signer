@@ -4,5 +4,6 @@ use (
 	./burner
 	./host-burner
 	./led-test
+	./sd-test
 	./signer
 )

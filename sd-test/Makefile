@@ -13,7 +13,7 @@ BUILD_TAGS = ""
 BUILD = ${BUILD_USER}@${BUILD_HOST} on ${BUILD_DATE}
 REV = $(shell git rev-parse --short HEAD 2> /dev/null)
 
-APP := led-test
+APP := sd-test
 GOENV := GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm
 TEXT_START := 0x80010000 # ramStart (defined in imx6/imx6ul/memory.go) + 0x10000
 GOFLAGS := -trimpath -ldflags "-s -w -T $(TEXT_START) -E _rt0_arm_tamago -R 0x1000 -X 'main.Build=${BUILD}' -X 'main.Revision=${REV}'"
