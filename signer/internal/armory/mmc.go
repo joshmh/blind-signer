@@ -2,7 +2,6 @@ package armory
 
 import (
 	"errors"
-	"log"
 	"math/big"
 	"time"
 
@@ -44,8 +43,6 @@ func WriteData(dataType string, dataValue string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	log.Printf("%x", bytes)
 
 	return dataValue, nil
 }

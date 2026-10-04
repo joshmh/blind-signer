@@ -34,8 +34,7 @@ func main() {
 	mnemonic = strings.ReplaceAll(mnemonic, "\n", "")
 	password = strings.ReplaceAll(password, "\n", "")
 
-	fmt.Println("Mnemonic:", mnemonic)
-	fmt.Println("Password:", password)
+	fmt.Println("Loaded mnemonic and password.")
 
 	// Derive master key from mnemonic
 	seed := bip39.NewSeed(mnemonic, password)
@@ -45,15 +44,16 @@ func main() {
 		log.Fatalf("Failed to create master key: %v", err)
 	}
 
-	// Sign the transaction
-	tx, err := btc.SignTx(psbt, masterKey)
-	if err != nil {
+	// Sign the transaction. Output path pattern matches the signed dir
+	// convention of `stevie sign`.
+	outPath := filepath.Join("play", "signed", fmt.Sprintf("%s_signed_%s.psbt",
+		strings.TrimSuffix(filepath.Base(psbtFilePath), filepath.Ext(psbtFilePath)), handle))
+	if err := btc.SignTx(0, 0, psbt, masterKey, outPath); err != nil {
 		fmt.Printf("Error: %+v\n", err)
 		log.Fatalf("Failed to sign transaction: %v", err)
 	}
 
-	// Output or process the signed transaction
-	log.Println("Signed Transaction:", tx)
+	log.Println("Signed Transaction written to:", outPath)
 }
 
 func readBytes(filepath string) []byte {
