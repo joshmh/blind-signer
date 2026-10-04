@@ -37,17 +37,18 @@ func sign(coin_type uint32, account uint32, handle string) {
 	total_success, err := processTransactions(coin_type, account, txsDir, signedDir, handle, masterKey)
 	if err != nil {
 		log.Fatalf("Failed to process transactions: %v", err)
-	} else {
-		if total_success {
-			fmt.Println("All transactions signed successfully.")
-			err := os.RemoveAll("play/toxic")
-			if err != nil {
-				log.Fatalf("Failed to delete toxic directory: %v", err)
-			}
-			fmt.Println("Toxic directory deleted.")
-		} else {
-			fmt.Println("Some transactions failed to sign, leaving toxic directory intact.")
+	}
+
+	if total_success {
+		fmt.Println("All transactions signed successfully.")
+		err := os.RemoveAll("play/toxic")
+		if err != nil {
+			log.Fatalf("Failed to delete toxic directory: %v", err)
 		}
+		fmt.Println("Toxic directory deleted.")
+	} else {
+		fmt.Println("Some transactions failed to sign, leaving toxic directory intact.")
+		os.Exit(1)
 	}
 }
 
@@ -83,6 +84,10 @@ func main() {
 			fmt.Printf("Invalid account value: %s\n", accountStr)
 			os.Exit(1)
 		}
+		if account >= hdkeychain.HardenedKeyStart {
+			fmt.Printf("Account must be less than 2^31 (got %s)\n", accountStr)
+			os.Exit(1)
+		}
 
 		coin_type := uint32(0)
 		if len(os.Args) == 5 && os.Args[4] == "--testnet" {
@@ -97,14 +102,16 @@ func main() {
 }
 
 func createDirectory(dir string) {
-	err := os.MkdirAll(dir, os.ModePerm)
+	err := os.MkdirAll(dir, 0700)
 	if err != nil {
 		log.Fatalf("failed to create directory [%s]: %v", dir, err)
 	}
 }
 
 func processTransactions(coin_type uint32, account uint32, txsDir string, signedDir string, handle string, masterKey *hdkeychain.ExtendedKey) (bool, error) {
-	// Read transactions from the txs directory
+	// Read transactions from the txs directory. Only *.psbt files are
+	// treated as work items; dotfiles and AppleDouble junk stay out of the
+	// count instead of failing the whole batch.
 	files, err := os.ReadDir(txsDir)
 	if err != nil {
 		return false, fmt.Errorf("failed to read txs directory [%s]: %v", txsDir, err)
@@ -112,13 +119,35 @@ func processTransactions(coin_type uint32, account uint32, txsDir string, signed
 
 	count := 0
 	signedCount := 0
+	isWorkItem := func(name string) bool {
+		return !strings.HasPrefix(name, ".") && strings.HasSuffix(strings.ToLower(name), ".psbt")
+	}
+	for _, file := range files {
+		if file.IsDir() || !isWorkItem(file.Name()) {
+			continue
+		}
+		count += 1
+	}
+	// Remove stale outputs before signing: yesterday's *_signed_*.psbt must
+	// never survive to look like today's result if this run fails midway.
+	if err := os.RemoveAll(signedDir); err != nil {
+		return false, fmt.Errorf("failed to clear signed directory [%s]: %v", signedDir, err)
+	}
+	if err := os.MkdirAll(signedDir, 0700); err != nil {
+		return false, fmt.Errorf("failed to recreate signed directory [%s]: %v", signedDir, err)
+	}
+
+	if count == 0 {
+		fmt.Println("No unsigned transactions found.")
+		return false, nil
+	}
 
 	for _, file := range files {
-		if file.IsDir() {
+		txnFilename := file.Name()
+		if file.IsDir() || !isWorkItem(txnFilename) {
 			continue
 		}
 
-		txnFilename := file.Name()
 		txnFilenameWithoutSuffix := strings.TrimSuffix(txnFilename, filepath.Ext(txnFilename))
 		txnFilePath := filepath.Join(txsDir, txnFilename)
 		psbt, err := readBytes(txnFilePath)
@@ -126,8 +155,6 @@ func processTransactions(coin_type uint32, account uint32, txsDir string, signed
 			log.Printf("Failed to read transaction %s: %v", txnFilename, err)
 			continue
 		}
-
-		count += 1
 
 		// Write the signed transaction to the signed directory
 		signedTxnFilename := fmt.Sprintf("%s_signed_%s.psbt", txnFilenameWithoutSuffix, handle)
